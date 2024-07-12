@@ -1,7 +1,9 @@
 ### adapted by Benjamin Eckhardt 2024 from Franki Allegra 2020 https://github.com/rubber-duck-dragon/rubber-duck-dragon.github.io/blob/8210d352c9527f51ab539b05e2f3a6eb170eea68/cc-cedict_parser/parser.py ###
 
+import sys
+
 def cedict(path='cedict_ts.u8', surnames=True):
-  """Parse CC-Cedict at path -> [dict(trad=…, simp=…, pinyin=…, en=…), …]"""
+  """Parse CC-Cedict at path -> [{'trad':, 'simp':, 'pinyin':, 'en':}, …]"""
   with open(path) as file: lines = file.read().split('\n')
 
   entries = int(next(filter(lambda l: l.startswith('#! entries='), lines)).split('=')[1])
@@ -22,4 +24,4 @@ def cedict(path='cedict_ts.u8', surnames=True):
   if surnames: assert len(out) == entries, f"Parsed entries number {len(out)} is wrong (cedict header says {entries})."
   return out
 
-if __name__ == '__main__': print(len(cedict()))
+if __name__ == '__main__': print(len(cedict(sys.argv[1])))
