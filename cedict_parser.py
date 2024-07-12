@@ -14,7 +14,7 @@ with open('cedict_ts.u8') as file:
 
   def parse_line(line):
     parsed = {}
-    if line == '':
+    if line == '' or line[0] == '#':
       dict_lines.remove(line)
       return 0
     line = line.rstrip('/')
