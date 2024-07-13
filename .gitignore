@@ -1,2 +1,5 @@
+__pycache__
+
 data/cedict_ts.u8
 data/pleco-flashs.txt
+data/chars.txt
