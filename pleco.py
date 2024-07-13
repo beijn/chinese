@@ -26,4 +26,6 @@ def flashs(path='flashs.txt', lesson2digits=False):
   
   return reduce(pLine, lines, ({}, '', []))[0]
 
-if __name__ == '__main__': print(len([x for xs in flashs(sys.argv[1]).values() for x in xs]))
+if __name__ == '__main__': 
+  if len(sys.argv) != 2: sys.exit(print("Usage: python3 pleco.py <path to flashs.txt>"))
+  print("Cards parsed:", len([x for xs in flashs(sys.argv[1]).values() for x in xs]))

@@ -57,6 +57,8 @@ def flashs2dict(flashs, fill):
 
 
 if __name__ == '__main__':
+  if len(sys.argv) != 3: sys.exit(print("Usage: python3 mk_charflashs.py <path to cedict_ts.u8> <path to flashs.txt>"))
+
   cedict = cedict.cedict(sys.argv[1], count=False)
   flashs = pleco.flashs(sys.argv[2], lesson2digits=True)
 
@@ -89,4 +91,3 @@ if __name__ == '__main__':
       line = re.sub(r' \[(PAVC-...|TOP-.)\]', r'', line)
       line = re.sub(r'\|\S+\[', '[', line)
       print(line) 
-

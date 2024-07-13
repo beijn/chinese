@@ -31,4 +31,7 @@ def cedict(path='cedict_ts.u8', surnames=True, by_trad=True, count=True):
       else: out[e['trad']]['en'] += '; ' + e['en']
     return out
   else: return entries
-if __name__ == '__main__': print(len(cedict(sys.argv[1])))
+
+if __name__ == '__main__': 
+  if len(sys.argv) != 2: sys.exit(print("Usage: python3 cedict.py <path to cedict_ts.u8>"))
+  print('Parsed entries:', len(cedict(sys.argv[1])))
