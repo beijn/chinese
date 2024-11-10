@@ -63,7 +63,7 @@ def read_pleco_flashs(path, PAVC=False) -> pd.DataFrame: # Catergory, Traditiona
       o += [x]
 
   o = pd.DataFrame(o, columns=list("ctspd"))
-  o.sort_values(['c'], inplace=True, ignore_index=True)
+  o.sort_values(['c'], inplace=True, ignore_index=True, kind='stable')  # stable sort keeps order from the book, which sometimes makes sense. also groups extra at the end
   return o
 
 
