@@ -8,4 +8,4 @@
 quick run: `bash run.sh`
 (or if everything is allready installed and downloaded: `python charflashs.py data/cedict_ts.u8 "data/AV Chinese Flashcards.txt"`)
 
-# TODO: list words for each char by HSK or TOEFCL level that requires that word
+- Install dependencies via conda/micromamba: `conda create -yf environment.yml`

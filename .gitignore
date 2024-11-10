@@ -1,4 +1,5 @@
 __pycache__
 
-data
-pleco_pavc_chars.txt
+cache
+
+chars*.txt
