@@ -38,19 +38,21 @@ def unzip(file, only={}, rm=False):
 def normalize_pinyin(t,p):
   # TODO make if work with tofcl format: split 'měiguó' into 'měi guó'
   p = p.strip().rstrip(']').lower()
+  p = re.sub('-', '', p)
   p = re.sub(r'\s+', ' ', p)
-  p = re.sub('u:', 'ü', p)
   p = unicodedata.normalize('NFD', p).translate(
     {0x304:49, 
      0x301:50, 
      0x30c:51, 0x306:51,
      0x300:52})
+  p = re.sub('u:', 'ü', p)
   # shift the number to the end of the syllable  # NOTE that this regex is not perfect I think if theres no apostrophe eg in nanan nanou nane*
   p = re.sub(r'([aeiou])([12345])(o|i|u)?(ng|n(?![aeiou]))?', r'\1\3\4\2', p)
   p = re.sub(r'([12345])(\w)', r'\1 \2', p)
   return tuple([
     'y1' if r == '一' else
     'bu4' if r == '不' else
+    q+'5' if not q[-1].isdigit() else
     q for r,q in zip(t,p.split(' '))
   ])
 
@@ -66,7 +68,7 @@ def get_tocfl(**kw):
   return read_tofcl(f, **kw)
 
 def read_tofcl(path):
-  levels = 'N1 N2 L1 L2 L3 L4 L5'.split(' ')
+  levels = '01 02 L1 L2 L3 L4 L5'.split(' ')
   o = pd.DataFrame(columns=['c','t','p','g'])
   for i,l in enumerate(levels):
     L = pd.read_excel(path, sheet_name=i, usecols=[1,2,3] if i<4 else [0,1,2]); 
@@ -75,6 +77,7 @@ def read_tofcl(path):
     for i in range(len(L)):
       ts, ps = [[x.strip() for x in tp.split('/')]
                  for tp in (L.loc[i].t, L.loc[i].p)]
+      ts = [re.sub(r'\(([\u3100-\u312F]|[\u02C9\u02CA\u02C7\u02CB\u02D9]|[\u31A0-\u31BF])+\)', '', t) for t in ts] # remove bopomofo
       L.loc[i,'t'] = ts[0]
       L.loc[i,'p'] = ps[0]
 
@@ -100,7 +103,7 @@ def get_cedict(**kw):
   unzip(f, only={(f:='cedict_ts.u8'):'cache/'+f})
   return read_cedict('cache/'+f, **kw)
 
-def read_cedict(path, omit_names) -> pd.DataFrame:
+def read_cedict(path, omit_names, omit_ascii=True, unique='last') -> pd.DataFrame:
   '''Parse CC-Cedict at path -> Traditional, Simplified, Pinyin, Definition'''
   with open(path) as file: lines = file.read().split('\n')
 
@@ -114,11 +117,13 @@ def read_cedict(path, omit_names) -> pd.DataFrame:
     t,s,*_ = ts.split()
     p = normalize_pinyin(t,p)
 
+    if omit_ascii and re.search(r'[\x00-\x7F]', t): return 
     if omit_names and not len(t)>1 and 'surname ' in d: return  # NOTE: Characters that are commonly used as surnames have two entries in CC-CEDICT.
     # TODO: omit food names, specific places, ...
     return t,s,p,d
   
   o = pd.DataFrame(list(filter(lambda x: x, map(do_line, lines))), columns=list('tspd'))
+  if unique: o = o.drop_duplicates(['t', 'p'], keep=unique, ignore_index=True)
   return o
 
 
