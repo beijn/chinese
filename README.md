@@ -6,6 +6,6 @@
   - to be used on the PAVC txt flashcards from https://www.plecoforums.com/threads/practical-audio-visual-chinese-dictionary-and-flashcards.2403/
 
 quick run: `bash run.sh`
-(or if everything is allready installed and downloaded: `python charflashs.py data/cedict_ts.u8 "data/AV Chinese Flashcards.txt"`)
 
-- Install dependencies via conda/micromamba: `conda create -yf environment.yml`
+- Install conda dependcies: `conda create -yf environment.yml && conda activate chinese`
+- Run: `python charflashs.py pavc -w base tocfl -d pavc cedict -o chars-pavc-tocfl.txt`

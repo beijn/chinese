@@ -71,7 +71,7 @@ def read_tofcl(path):
   levels = '01 02 L1 L2 L3 L4 L5'.split(' ')
   o = pd.DataFrame(columns=['c','t','p','g'])
   for i,l in enumerate(levels):
-    L = pd.read_excel(path, sheet_name=i, usecols=[1,2,3] if i<4 else [0,1,2]); 
+    L = pd.read_excel(path, sheet_name=i, usecols=[1,2,3] if i<4 else [0,1,2])
     L.columns = ['t','p','g']; L['c'] = [l:=('','',l)]*len(L)
     variants = []
     for i in range(len(L)):
@@ -149,7 +149,7 @@ def read_pleco_flashs(path, PAVC=None, omit_names=True) -> pd.DataFrame: # Cater
       if PAVC:
         if omit_names and len(t)>1 and re.search(r'transliteration|(pet|\w\sgiven)\sname', d): return
         if c[2]==0: # Is under an Extra
-          c_[0] = 0
+          c_[0] = 0 
           if ls := [int(n) for n in re.findall(r'\[PAVC-(\d\d\d)]?', d)]: 
             c_[2] = min(ls)
             c_[1] = c_[2] // 100; c_[2] = c_[2] % 100
