@@ -51,6 +51,7 @@ def format_flashcard(s,t,p,t2p2d,t2wss, S=0, overwrite_d=''):
   o = f'{s}[{t}]\t{p}\t{shorten_def(d, S=S)}\uEAB1\uEAB1'
 
   for mode, ws in wss:
+    _o = ''
     categories = {'relative': [0,1,2],
                   'categoric': all}[mode]
     write_category = {'relative': slice(0,0),
@@ -58,12 +59,12 @@ def format_flashcard(s,t,p,t2p2d,t2wss, S=0, overwrite_d=''):
     for c in sorted(ws.keys()):
       if categories is not all and c not in categories: continue
       _c =  '▪' + ('/'.join(c[write_category]) if isinstance(c, tuple) else '')
-      if _c: o += f'{_c}  ' #\u3000
+      if _c: _o += f'{_c} ' #\u3000
 
-      _c = '  '.join([w.s if S else w.t for w in ws[c]])
-      if _c: o += _c + '\uEAB1'
-    o += '\uEAB1'
-  return o[:-2]+'\n'
+      _c = ' '.join([w.s if S else w.t for w in ws[c]])
+      if _c: _o += _c + '\uEAB1'
+    if _o: o += _o + '\uEAB1'
+  return p+o[:-2]+'\n'
 
 def shorten_def(d, S=0) -> str:
   d = re.sub('(bound form)', 'BF', d)
