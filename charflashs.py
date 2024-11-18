@@ -50,12 +50,11 @@ def format_flashcard(s,t,p,t2p2d, pavc, wordlist, S=0, overwrite_d=''):
   for c in 0,1: 
     o += ' '.join([w.s if S else w.t for w in pavc.get(t, defaultdict(list))[c]]) + ' '
 
-  o += '\uEAB1'
   for c in wordlist.get(t, defaultdict(list)):
-    o += '\uEAB1' + '/'.join(c) + ' '
+    o += ' \uEAB1' + '/'.join(c) + ' '
     o += ' '.join([w.s if S else w.t for w in wordlist.get(t, defaultdict(list))[c]])    
   
-  o += '\uEAB1\uEAB1'
+  o += '\uEAB1 \uEAB1'
   o += ' '.join([w.s if S else w.t for w in pavc.get(t, defaultdict(list))[2]])
 
   return o.rstrip('\uEAB1')+'\n'
