@@ -4,13 +4,13 @@ import re, pandas as pd
 from collections import defaultdict 
 
 
-# TODO: Add TOCFL cards sorted by level, where dict entry is just the level
+# TODO higher pavc-level example words for newer character reintroduction / also specific to reading
 
 
-def create_character_flashcards(base, wordlists, dicts, simplified, output=''):
-  tp2c = mk_tp2c(base)
-  t2wss = [(mode, index_words_by_char(mode, wordlist, tp2c))
-           for mode, wordlist in wordlists]
+def create_character_flashcards(base, pavc, wordlist, dicts, simplified, output=''):
+  t2c = mk_t2c(base)
+  pavc = index_words_by_char('relative', pavc, t2c)
+  wordlist = index_words_by_char('categoric', wordlist, t2c)
   t2p2d = collect_definitions(dicts)
 
   done = set()
@@ -26,19 +26,19 @@ def create_character_flashcards(base, wordlists, dicts, simplified, output=''):
           if len(r.t)>1 and ((t,p) in done or any(map(lambda tone: (t,p[:-1]+tone) == last, '1234'))): continue
           done.add((t,p))
           last = (t,p)
-          f.write(format_flashcard(s,t,p,t2p2d,t2wss, S=simplified, 
+          f.write(format_flashcard(s,t,p,t2p2d, pavc, wordlist, S=simplified, 
                     overwrite_d=r.d if len(r.t)==1 else ''))
   else: raise Exception('TODO just return DataFrame')
 
-def mk_tp2c(dict: pd.DataFrame):
-  tp2c = {}
+def mk_t2c(dict: pd.DataFrame):
+  t2c = {}
   for _,x in dict.iterrows():
     for t,p in zip(x.t, x.p):
-      if (t,p) not in tp2c: tp2c[(t,p)] = x.c
-      else: tp2c[(t,p)] = min(tp2c[(t,p)], x.c)
-  return lambda k: tp2c.get(k, False)
+      if t not in t2c: t2c[t] = x.c
+      else: t2c[t] = min(t2c[t], x.c)
+  return lambda k: t2c.get(k, False)
 
-def format_flashcard(s,t,p,t2p2d,t2wss, S=0, overwrite_d=''):
+def format_flashcard(s,t,p,t2p2d, pavc, wordlist, S=0, overwrite_d=''):
   if t in t2p2d and p in t2p2d[t]: d = t2p2d[t][p]
   else: d = f'No definition found for {t} ({p}).'
 
@@ -46,25 +46,19 @@ def format_flashcard(s,t,p,t2p2d,t2wss, S=0, overwrite_d=''):
   for q in t2p2d[t]:
     if q != p: d += f'\uEAB1‣{q}: {t2p2d[t][q]}'
 
-  wss = [(mode, t2ws.get(t, defaultdict(list))) for mode,t2ws in t2wss]  # type: ignore
+  o = f'{s}[{t}]\t{p}\t{shorten_def(d, S=S)}\uEAB1'
+  for c in 0,1: 
+    o += ' '.join([w.s if S else w.t for w in pavc.get(t, defaultdict(list))[c]]) + ' '
+
+  o += '\uEAB1'
+  for c in wordlist.get(t, defaultdict(list)):
+    o += '\uEAB1' + '/'.join(c) + ' '
+    o += ' '.join([w.s if S else w.t for w in wordlist.get(t, defaultdict(list))[c]])    
   
-  o = f'{s}[{t}]\t{p}\t{shorten_def(d, S=S)}\uEAB1\uEAB1'
+  o += '\uEAB1\uEAB1'
+  o += ' '.join([w.s if S else w.t for w in pavc.get(t, defaultdict(list))[2]])
 
-  for mode, ws in wss:
-    _o = ''
-    categories = {'relative': [0,1,2],
-                  'categoric': all}[mode]
-    write_category = {'relative': slice(0,0),
-                      'categoric': slice(2,3)}[mode]
-    for c in sorted(ws.keys()):
-      if categories is not all and c not in categories: continue
-      _c =  '▪' + ('/'.join(c[write_category]) if isinstance(c, tuple) else '')
-      if _c: _o += f'{_c} ' #\u3000
-
-      _c = ' '.join([w.s if S else w.t for w in ws[c]])
-      if _c: _o += _c + '\uEAB1'
-    if _o: o += _o + '\uEAB1'
-  return p+o[:-2]+'\n'
+  return o.rstrip('\uEAB1')+'\n'
 
 def shorten_def(d, S=0) -> str:
   d = re.sub('(bound form)', 'BF', d)
@@ -82,10 +76,14 @@ def collect_definitions(dicts):
         t2p2d[w.t[0]][w.p[0]] = w.d  # +=
   return t2p2d
 
-def index_words_by_char(mode, lst, tp2c):
+def index_words_by_char(mode, lst, t2c, omit_singletons=True):
   # tp2ws = tp: cat: [word]
   t2ws = defaultdict(lambda: defaultdict(list))
-  def add(t,_p,c,w): t2ws[t][c] += [w]
+  t2ws_set = defaultdict(set)
+  def add(t,_p,c,w): 
+    if w.t in t2ws_set[t]: return
+    t2ws_set[t].add(w.t)
+    t2ws[t][c] += [w]
   # relative mode: 
   # 0: all chars subsubcategories <= this
   # 1: all chars subcategories <= this
@@ -93,20 +91,21 @@ def index_words_by_char(mode, lst, tp2c):
   # 3: all others in no category in base
   # long: phrases with a comma
   for i,w in lst.iterrows():
-    #if len(w.t) <= 1: continue
+    #if omit_singletons and len(w.t) <= 1: continue
 
     tps = list(zip(w.t, w.p))
-    if '\uff0c' in w.t:  
+    if '\uff0c' in w.t:  # cjk comma
       for t,p in tps: add(t,p,',', w)
       continue
 
-    cs = list(map(tp2c, tps)) # NOTE: Python iterators are a bit weird in that they are consumed after the first iteration
+    cs = list(map(t2c, w.t)) # NOTE: Python iterators are a bit weird in that they are consumed after the first iteration
     
     for (t,p), c in zip(tps, cs):
       if mode=='relative':
+        # TODO: can optimize this
         if   all(map(lambda d: d[0:3]<=c[0:3], cs)): add(t,p,0,w)  # eg in same lesson
         elif all(map(lambda d: d[0:2]<=c[0:2], cs)): add(t,p,1,w)  # eg in same book
-        elif all(map(lambda d: d[0:1]<=c[0:1], cs)): add(t,p,2,w)  # eg in same category
+        elif all(map(lambda d: d[0:1]<=c[0:1], cs)): add(t,p,2,w)  # eg in same category (book series)
         else: add(t,p,3,w)
       else: add(t,p,w.c,w)
                   
@@ -118,7 +117,7 @@ if __name__=='__main__':
 
   p = argparse.ArgumentParser()
   p.add_argument('base', nargs='?', help='Pleco flashcards path, which the character flashcards should be based on. Defaults to downloading the PAVC flashcards.', default='pavc')
-  p.add_argument('-w', '--words', nargs='+', help='Source of the example words. Special words: `base`: From the `base` flashcards sorted by category <= this subsubcategory, <= this subcategory, <= this category. `tocfl`: From TOCFL sorted by level. `hsk`: From HSK sorted by level. `pavc`: From the PAVC book series.')
+  #p.add_argument('-w', '--words', nargs='+', help='Source of the example words. Special words: `base`: From the `base` flashcards sorted by category <= this subsubcategory, <= this subcategory, <= this category. `tocfl`: From TOCFL sorted by level. `hsk`: From HSK sorted by level. `pavc`: From the PAVC book series.')
   p.add_argument('-d', '--dicts', nargs='+', help='Additional user supplied dictionaries to source character definitions from. Special cases: `cedict` will automatically download and use the latest CC-CEDICT.')
   p.add_argument('-o', '--output', default='chars.txt', help='Output file path.')
   p.add_argument('-s', '--simplified', action='store_true', help='Use simplified characters for flashcard text and example words.', default=False)
@@ -126,12 +125,13 @@ if __name__=='__main__':
   args = p.parse_args()
   kw = {'omit_names': not args.keep_names}
 
-  pavc = get_pavc(**kw) if args.base=='pavc' or 'pavc' in args.dicts or 'pavc' in args.words else None
+  pavc = get_pavc(**kw) if args.base=='pavc' or 'pavc' in args.dicts else None  # or 'pavc' in args.words
   base = pavc if args.base=='pavc' else read_wordlist(args.base, **kw) 
 
-  wordlists = [{'base':lambda: base, 'tocfl':get_tocfl, 'hsk':get_hsk}[_w]() for _w in args.words]
+  #wordlists = [{'base':lambda: base, 'tocfl':get_tocfl, 'hsk':get_hsk}[_w]() for _w in args.words]
+  #modes = ['relative' if w=='base' else 'categoric' for w in args.words]
+  
   dicts = []
-
   if args.dicts: 
     for path in args.dicts: 
       if args.dicts.count(path)>1: raise Exception('Remove duplicate in positional argument `dicts`: '+path)
@@ -139,6 +139,4 @@ if __name__=='__main__':
       elif path=='cedict': dicts += [get_cedict(**kw)]
       else: dicts += [read_wordlist(path, **kw)]
 
-  modes = ['relative' if w=='base' else 'categoric' for w in args.words]
-
-  create_character_flashcards(base, zip(modes, wordlists), dicts, args.simplified, args.output)
+  create_character_flashcards(base, pavc, get_tocfl(), dicts, args.simplified, args.output)

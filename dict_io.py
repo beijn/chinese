@@ -38,17 +38,19 @@ def unzip(file, only={}, rm=False):
 def normalize_pinyin(t,p):
   # TODO make if work with tofcl format: split 'měiguó' into 'měi guó'
   p = p.strip().rstrip(']').lower()
+  p = re.sub('u:|ü', 'v', p)
   p = re.sub('-', '', p)
   p = re.sub(r'\s+', ' ', p)
+  p = re.sub(r'\'', ' ', p)
   p = unicodedata.normalize('NFD', p).translate(
     {0x304:49, 
      0x301:50, 
      0x30c:51, 0x306:51,
      0x300:52})
-  p = re.sub('u:', 'ü', p)
   # shift the number to the end of the syllable  # NOTE that this regex is not perfect I think if theres no apostrophe eg in nanan nanou nane*
-  p = re.sub(r'([aeiou])([12345])(o|i|u)?(ng|n(?![aeiou]))?', r'\1\3\4\2', p)
+  p = re.sub(r'(?!u\dou)([aeiou])([12345])(o|i|u)?(ng|n(?![aeiou]))?', r'\1\3\4\2', p)
   p = re.sub(r'([12345])(\w)', r'\1 \2', p)
+  p = re.sub('v', 'ü', p)
   return tuple([
     'y1' if r == '一' else
     'bu4' if r == '不' else
